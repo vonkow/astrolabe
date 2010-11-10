@@ -1,0 +1,129 @@
+<html>
+	<head>
+	</head>
+	<body>
+		<canvas id="astrolabe" width=500 height=500></canvas>
+		<script>
+			// To calc sun and rising
+			// Get current time (offset for daylight savings, if needed)
+			// Calculate offset with Greewich time
+			// Get sun's pos at midnight greewich today and tomorrow
+			// Calc sun's current position
+			// Get sunrise time for lat/long
+			// Calc diff between sunrise and current time
+			// Calc zodiac pos using diff
+			Date.prototype.stdTimezoneOffset = function() {
+				var jan = new Date(this.getFullYear(), 0, 1);
+				var jul = new Date(this.getFullYear(), 6, 1);
+				return Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+			}
+			Date.prototype.dst = function() {
+				return this.getTimezoneOffset() < this.stdTimezoneOffset();
+			}
+			// create current time
+			var curT = new Date();
+			var curMS = Date.parse(curT);
+			// using - vs + because my timezone offset is incorrectly positive :( 
+			var uniMS = curMS-(curT.stdTimezoneOffset()*60000);
+
+
+
+			// Here's the rendering stuff
+			(function() {
+				function loadSprites(imgs, callback) {
+					function loadNext(arr) {
+						if (arr.length) {
+							var i = arr.pop();
+							var img = new Image();
+							img.onload = function() {
+								sprites[i[0]] = [this, i[2], i[3]];
+								loadNext(arr);
+							};
+							img.onerror = function() { loadNext(arr) };
+							img.src = i[1];
+						} else {
+							callback();
+						};
+					};
+					var x,
+						arr = [];
+					for (x in imgs) {
+						var i = imgs[x];
+						arr.push([x, i[0], i[1], i[2]]);
+					};
+					loadNext(arr);
+				};
+				function toRads(deg) { return (Math.PI/180)*deg};
+				function radLine(a,p1,p2,deg) {
+					var theta = toRads(deg);
+					var x = Math.sin(theta);
+					var y = Math.cos(theta);
+					a.beginPath();
+					a.moveTo(250+(p1*x), 250+(p1*y));
+					a.lineTo(250+(p2*x), 250+(p2*y));
+					a.closePath();
+					a.stroke();
+				}
+				function makeCirc(a,x,y,rad) {
+					a.beginPath();
+					a.arc(x,y,rad,0,toRads(360));
+					a.stroke();
+				}
+				function makeDegs(a,o) {
+					for (var d=0; d<360; d++) {
+
+						if (d%30==0) {
+							radLine(a,200,250,d+o);
+						} else if (d%5==0) {
+							radLine(a,200,212.5,d+o);
+						} else {
+							radLine(a,200,206.25,d+o);
+						}
+					}
+				}
+				function makeHouses(a) {
+					for (var d=0;d<360; d+=30) {
+						radLine(a,100,200,d);
+					}
+				}
+				function drawImg(a,img,pdis,pdeg,ox,oy) {
+					var theta = toRads(pdeg);
+					var x = Math.sin(theta);
+					var y = Math.cos(theta);
+					a.drawImage(img,250+ox+(pdis*x),250+oy+(pdis*y));
+				}
+				function makeSigns(a,o) {
+					var signs = ['ares','taurus','gemini','cancer','leo','virgo','libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
+					var signCount = -1;
+					for (var p=15;p<375;p+=30) {
+						drawImg(a, sprites[signs[++signCount]][0], 231, p+o, -15, -15);
+					}
+				}
+				var sprites = {};
+				var a = document.getElementById('astrolabe').getContext('2d');
+				loadSprites({
+					ares: ['sprites/ares.png',30,30],
+					taurus: ['sprites/taurus.png',30,30],
+					gemini: ['sprites/gemini.png',30,30],
+					cancer: ['sprites/cancer.png',30,30],
+					leo: ['sprites/leo.png',30,30],
+					virgo: ['sprites/virgo.png',30,30],
+					libra: ['sprites/libra.png',30,30],
+					scorpio: ['sprites/scorpio.png',30,30],
+					sagittarius: ['sprites/sagittarius.png',30,30],
+					capricorn: ['sprites/capricorn.png',30,30],
+					aquarius: ['sprites/aquarius.png',30,30],
+					pisces: ['sprites/pisces.png',30,30]
+				}, function() {
+					makeCirc(a,250,250,250);
+					makeCirc(a,250,250,212.5);
+					makeCirc(a,250,250,200);
+					makeCirc(a,250,250,100);
+					makeHouses(a);
+					makeDegs(a,23.23);
+					makeSigns(a,23.23);
+				})
+			})();
+		</script>
+	</body>
+</html>
