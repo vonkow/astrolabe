@@ -4,6 +4,11 @@
 	<body>
 		<canvas id="astrolabe" width=500 height=500></canvas>
 		<script>
+			//var ascArr = [
+				//[0,[
+					//0,55,110,165,220,275,330,386,441,496,551,607,662,718,773
+				//]]
+			//]
 			// To calc sun and rising
 			// Get current time (offset for daylight savings, if needed)
 			// Calculate offset with Greewich time
@@ -23,112 +28,127 @@
 			// create current time
 			var lat = 42.36;
 			var lon = -71.1;
-			var curT = new Date();
-			var secOffset = (curT.getHours()*3600)+(curT.getMinutes()*60)+curT.getSeconds();
-			var curMS = curT.getTime();
-			var gmtMS = curMS+(curT.stdTimezoneOffset()*60000);
-			var locMS = gmtMS+(Math.round(lon)*4*60000);
-			//now calc star time using local time and longitude
-			// today's star time 3:16.12
-
-
+			function calcAsc() {
+				var curT = new Date();
+				var curSec = (curT.getHours()*3600)+(curT.getMinutes()*60)+curT.getSeconds();
+				var gmtSec = curSec+(curT.stdTimezoneOffset()*60);
+				var locSec = gmtSec+(Math.round(lon)*4*60);
+				//now calc star time using local time and longitude
+				// yesterday's sidereal time 3:16.12
+				// today's sidereal time 3:20.8
+				var sidT1 = (((3*60)+20)*60)+8;
+				// Add 10 sec for every 15 deg lon west (sub east)
+				var sidT2 = sidT1+Math.round((-lon/15)*10);
+				// Add Local Time
+				var sidT3 = sidT2+locSec;
+				// Add 10 seconds for ever hour of local time
+				var sidT = sidT3+Math.round(((locSec/60)/60)*10);
+				// Subtract 24 hours for true local sidereal time, if needed
+				if (sidT>(24*60*60)) sidT-=(24*60*60);
+				// Get degrees to rotate,(assuming equator, even houses)
+				var curDeg = (sidT/60)/4;
+				return curDeg;
+			}
 
 			// Here's the rendering stuff
-			(function() {
-				function loadSprites(imgs, callback) {
-					function loadNext(arr) {
-						if (arr.length) {
-							var i = arr.pop();
-							var img = new Image();
-							img.onload = function() {
-								sprites[i[0]] = [this, i[2], i[3]];
-								loadNext(arr);
-							};
-							img.onerror = function() { loadNext(arr) };
-							img.src = i[1];
-						} else {
-							callback();
+			function loadSprites(imgs, callback) {
+				function loadNext(arr) {
+					if (arr.length) {
+						var i = arr.pop();
+						var img = new Image();
+						img.onload = function() {
+							sprites[i[0]] = [this, i[2], i[3]];
+							loadNext(arr);
 						};
+						img.onerror = function() { loadNext(arr) };
+						img.src = i[1];
+					} else {
+						callback();
 					};
-					var x,
-						arr = [];
-					for (x in imgs) {
-						var i = imgs[x];
-						arr.push([x, i[0], i[1], i[2]]);
-					};
-					loadNext(arr);
 				};
-				function toRads(deg) { return (Math.PI/180)*deg};
-				function radLine(a,p1,p2,deg) {
-					var theta = toRads(deg);
-					var x = Math.sin(theta);
-					var y = Math.cos(theta);
-					a.beginPath();
-					a.moveTo(250+(p1*x), 250+(p1*y));
-					a.lineTo(250+(p2*x), 250+(p2*y));
-					a.closePath();
-					a.stroke();
-				}
-				function makeCirc(a,x,y,rad) {
-					a.beginPath();
-					a.arc(x,y,rad,0,toRads(360));
-					a.stroke();
-				}
-				function makeDegs(a,o) {
-					for (var d=0; d<360; d++) {
+				var x,
+					arr = [];
+				for (x in imgs) {
+					var i = imgs[x];
+					arr.push([x, i[0], i[1], i[2]]);
+				};
+				loadNext(arr);
+			};
+			function toRads(deg) { return (Math.PI/180)*deg};
+			function radLine(a,p1,p2,deg) {
+				var theta = toRads(deg);
+				var x = Math.sin(theta);
+				var y = Math.cos(theta);
+				a.beginPath();
+				a.moveTo(250+(p1*x), 250+(p1*y));
+				a.lineTo(250+(p2*x), 250+(p2*y));
+				a.closePath();
+				a.stroke();
+			}
+			function makeCirc(a,x,y,rad) {
+				a.beginPath();
+				a.arc(x,y,rad,0,toRads(360));
+				a.stroke();
+			}
+			function makeDegs(a,o) {
+				for (var d=0; d<360; d++) {
 
-						if (d%30==0) {
-							radLine(a,200,250,d+o);
-						} else if (d%5==0) {
-							radLine(a,200,212.5,d+o);
-						} else {
-							radLine(a,200,206.25,d+o);
-						}
+					if (d%30==0) {
+						radLine(a,200,250,d+o);
+					} else if (d%5==0) {
+						radLine(a,200,212.5,d+o);
+					} else {
+						radLine(a,200,206.25,d+o);
 					}
 				}
-				function makeHouses(a) {
-					for (var d=0;d<360; d+=30) {
-						radLine(a,100,200,d);
-					}
+			}
+			function makeHouses(a) {
+				for (var d=0;d<360; d+=30) {
+					radLine(a,100,200,d);
 				}
-				function drawImg(a,img,pdis,pdeg,ox,oy) {
-					var theta = toRads(pdeg);
-					var x = Math.sin(theta);
-					var y = Math.cos(theta);
-					a.drawImage(img,250+ox+(pdis*x),250+oy+(pdis*y));
+			}
+			function drawImg(a,img,pdis,pdeg,ox,oy) {
+				var theta = toRads(pdeg);
+				var x = Math.sin(theta);
+				var y = Math.cos(theta);
+				a.drawImage(img,250+ox+(pdis*x),250+oy+(pdis*y));
+			}
+			function makeSigns(a,o) {
+				var signs = ['ares','taurus','gemini','cancer','leo','virgo','libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
+				var signCount = -1;
+				for (var p=15;p<375;p+=30) {
+					drawImg(a, sprites[signs[++signCount]][0], 231, p+o, -15, -15);
 				}
-				function makeSigns(a,o) {
-					var signs = ['ares','taurus','gemini','cancer','leo','virgo','libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
-					var signCount = -1;
-					for (var p=15;p<375;p+=30) {
-						drawImg(a, sprites[signs[++signCount]][0], 231, p+o, -15, -15);
-					}
-				}
-				var sprites = {};
+			}
+			function drawChart() {
 				var a = document.getElementById('astrolabe').getContext('2d');
-				loadSprites({
-					ares: ['sprites/ares.png',30,30],
-					taurus: ['sprites/taurus.png',30,30],
-					gemini: ['sprites/gemini.png',30,30],
-					cancer: ['sprites/cancer.png',30,30],
-					leo: ['sprites/leo.png',30,30],
-					virgo: ['sprites/virgo.png',30,30],
-					libra: ['sprites/libra.png',30,30],
-					scorpio: ['sprites/scorpio.png',30,30],
-					sagittarius: ['sprites/sagittarius.png',30,30],
-					capricorn: ['sprites/capricorn.png',30,30],
-					aquarius: ['sprites/aquarius.png',30,30],
-					pisces: ['sprites/pisces.png',30,30]
-				}, function() {
-					makeCirc(a,250,250,250);
-					makeCirc(a,250,250,212.5);
-					makeCirc(a,250,250,200);
-					makeCirc(a,250,250,100);
-					makeHouses(a);
-					makeDegs(a,23.23);
-					makeSigns(a,23.23);
-				})
-			})();
+				var deg = calcAsc();
+				a.clearRect(0,0,500,500);
+				makeCirc(a,250,250,250);
+				makeCirc(a,250,250,212.5);
+				makeCirc(a,250,250,200);
+				makeCirc(a,250,250,100);
+				makeHouses(a);
+				makeDegs(a,180-deg);
+				makeSigns(a,180-deg);
+			}
+			var sprites = {};
+			loadSprites({
+				ares: ['sprites/ares.png',30,30],
+				taurus: ['sprites/taurus.png',30,30],
+				gemini: ['sprites/gemini.png',30,30],
+				cancer: ['sprites/cancer.png',30,30],
+				leo: ['sprites/leo.png',30,30],
+				virgo: ['sprites/virgo.png',30,30],
+				libra: ['sprites/libra.png',30,30],
+				scorpio: ['sprites/scorpio.png',30,30],
+				sagittarius: ['sprites/sagittarius.png',30,30],
+				capricorn: ['sprites/capricorn.png',30,30],
+				aquarius: ['sprites/aquarius.png',30,30],
+				pisces: ['sprites/pisces.png',30,30]
+			}, function() {
+				var i = window.setInterval(drawChart, 1000);
+			})
 		</script>
 	</body>
 </html>
