@@ -21,10 +21,15 @@
 				return this.getTimezoneOffset() < this.stdTimezoneOffset();
 			}
 			// create current time
+			var lat = 42.36;
+			var lon = -71.1;
 			var curT = new Date();
-			var curMS = Date.parse(curT);
-			// using - vs + because my timezone offset is incorrectly positive :( 
-			var uniMS = curMS-(curT.stdTimezoneOffset()*60000);
+			var secOffset = (curT.getHours()*3600)+(curT.getMinutes()*60)+curT.getSeconds();
+			var curMS = curT.getTime();
+			var gmtMS = curMS+(curT.stdTimezoneOffset()*60000);
+			var locMS = gmtMS+(Math.round(lon)*4*60000);
+			//now calc star time using local time and longitude
+			// today's star time 3:16.12
 
 
 
